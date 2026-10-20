@@ -1,0 +1,6 @@
+{
+  "name": "Dussehra Festive Cards & Greeting Tracker",
+  "description": "Create personalized Vijayadashami & Dussehra digital greetings, customize themes & layouts, share via WhatsApp and social media, and track recipient views and replies in real time.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

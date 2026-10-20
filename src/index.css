@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+.font-festive {
+  font-family: 'Cinzel', serif;
+}
+
+.font-devanagari {
+  font-family: 'Rozha One', 'Cinzel', serif;
+}
+
+@keyframes flameFlicker {
+  0%, 100% {
+    transform: scale(1) rotate(-1deg);
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 24px rgba(239, 68, 68, 0.6));
+  }
+  25% {
+    transform: scale(1.08, 0.94) rotate(1.5deg);
+    filter: drop-shadow(0 0 14px rgba(251, 191, 36, 1)) drop-shadow(0 0 30px rgba(249, 115, 22, 0.7));
+  }
+  50% {
+    transform: scale(0.96, 1.05) rotate(-2deg);
+    filter: drop-shadow(0 0 11px rgba(245, 158, 11, 0.85)) drop-shadow(0 0 20px rgba(239, 68, 68, 0.5));
+  }
+  75% {
+    transform: scale(1.04, 1.02) rotate(1deg);
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.95)) drop-shadow(0 0 28px rgba(245, 158, 11, 0.6));
+  }
+}
+
+.animate-diya-flame {
+  animation: flameFlicker 2.4s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes goldShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.gold-foil-text {
+  background: linear-gradient(120deg, #ca8a04 0%, #fef08a 35%, #eab308 50%, #ca8a04 70%, #fde047 100%);
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: goldShimmer 6s linear infinite;
+}
+
+.gold-foil-border {
+  border-image: linear-gradient(135deg, #eab308, #fef08a, #ca8a04, #fef08a, #b45309) 1;
+}
+
+/* Custom festive scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.6);
+}

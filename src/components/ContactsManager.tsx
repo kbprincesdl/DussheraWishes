@@ -15,6 +15,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { Contact, Relationship } from '../types/greeting';
+import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface ContactsManagerProps {
   contacts: Contact[];
@@ -32,9 +33,10 @@ export const ContactsManager: React.FC<ContactsManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRelationship, setFilterRelationship] = useState<string>('all');
   
-  // Modal states for Add/Edit
+  // Modal states for Add/Edit and Delete
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [contactToDelete, setContactToDelete] = useState<Contact | null>(null);
 
   // Form states
   const [name, setName] = useState('');
@@ -188,11 +190,7 @@ export const ContactsManager: React.FC<ContactsManagerProps> = ({
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Delete ${contact.name} from contacts?`)) {
-                          onDeleteContact(contact.id);
-                        }
-                      }}
+                      onClick={() => setContactToDelete(contact)}
                       className="p-1.5 text-stone-400 hover:text-rose-400 hover:bg-stone-800 rounded-lg transition-colors"
                       title="Delete Contact"
                     >
@@ -346,6 +344,21 @@ export const ContactsManager: React.FC<ContactsManagerProps> = ({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(contactToDelete)}
+        title="Delete Contact"
+        itemName={contactToDelete?.name || ''}
+        itemType="friends directory"
+        onConfirm={() => {
+          if (contactToDelete) {
+            onDeleteContact(contactToDelete.id);
+            setContactToDelete(null);
+          }
+        }}
+        onCancel={() => setContactToDelete(null)}
+      />
     </div>
   );
 };

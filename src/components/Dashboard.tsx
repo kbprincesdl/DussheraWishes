@@ -28,6 +28,7 @@ import { QRCodeModal } from './QRCodeModal';
 import { RepliesModal } from './RepliesModal';
 import { GreetingCardView } from './GreetingCardView';
 import { ContactsManager } from './ContactsManager';
+import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface DashboardProps {
   cards: GreetingCard[];
@@ -57,6 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [filterRelationship, setFilterRelationship] = useState<string>('all');
   const [activeQRCard, setActiveQRCard] = useState<GreetingCard | null>(null);
   const [activeRepliesCard, setActiveRepliesCard] = useState<GreetingCard | null>(null);
+  const [cardToDelete, setCardToDelete] = useState<GreetingCard | null>(null);
   const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
   const [selectedMobileCard, setSelectedMobileCard] = useState<GreetingCard>(cards[0] || null);
 
@@ -474,11 +476,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                         {/* Delete Card */}
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete greeting for ${card.friendName}?`)) {
-                              onDeleteCard(card.id);
-                            }
-                          }}
+                          onClick={() => setCardToDelete(card)}
                           className="p-1.5 text-rose-400/80 hover:text-rose-300 hover:bg-stone-800 rounded-lg transition-colors"
                           title="Delete Card"
                         >
@@ -594,6 +592,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {activeRepliesCard && (
         <RepliesModal card={activeRepliesCard} onClose={() => setActiveRepliesCard(null)} />
       )}
+
+      {/* Delete Card Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(cardToDelete)}
+        title="Delete Greeting"
+        itemName={cardToDelete?.friendName || ''}
+        itemType="greeting list"
+        onConfirm={() => {
+          if (cardToDelete) {
+            onDeleteCard(cardToDelete.id);
+            setCardToDelete(null);
+          }
+        }}
+        onCancel={() => setCardToDelete(null)}
+      />
     </div>
   );
 };

@@ -17,7 +17,17 @@ export interface GeneratedGreetingResult {
 }
 
 export async function generateFestiveGreeting(params: GenerateGreetingParams): Promise<GeneratedGreetingResult> {
-  const apiKey = process.env.GEMINI_API_KEY || (import.meta as unknown as { env: Record<string, string> }).env?.VITE_GEMINI_API_KEY;
+  let apiKey = '';
+  try {
+    if (typeof process !== 'undefined' && process?.env?.GEMINI_API_KEY) {
+      apiKey = process.env.GEMINI_API_KEY;
+    }
+  } catch {}
+  if (!apiKey) {
+    try {
+      apiKey = (import.meta as unknown as { env?: Record<string, string> }).env?.VITE_GEMINI_API_KEY || '';
+    } catch {}
+  }
 
   if (apiKey && apiKey !== 'MY_GEMINI_API_KEY') {
     try {

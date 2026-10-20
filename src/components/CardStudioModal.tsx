@@ -11,9 +11,11 @@ import {
   BookOpen, 
   Phone, 
   Music,
-  Eye
+  Eye,
+  Users,
+  UserCheck
 } from 'lucide-react';
-import { GreetingCard, ThemeId, LayoutId, Relationship, MusicTrack } from '../types/greeting';
+import { GreetingCard, ThemeId, LayoutId, Relationship, MusicTrack, Contact } from '../types/greeting';
 import { THEMES, LAYOUT_OPTIONS } from '../data/themes';
 import { MESSAGE_TEMPLATES, MessageTemplate } from '../data/messages';
 import { generateFestiveGreeting } from '../utils/gemini';
@@ -21,23 +23,28 @@ import { GreetingCardView } from './GreetingCardView';
 
 interface CardStudioModalProps {
   cardToEdit?: GreetingCard | null;
+  contacts?: Contact[];
   defaultSenderName: string;
   defaultSenderWhatsApp: string;
   onSave: (card: GreetingCard) => void;
+  onSaveContact?: (contact: Contact) => void;
   onClose: () => void;
 }
 
 export const CardStudioModal: React.FC<CardStudioModalProps> = ({
   cardToEdit,
+  contacts = [],
   defaultSenderName,
   defaultSenderWhatsApp,
   onSave,
+  onSaveContact,
   onClose
 }) => {
   const isEditing = Boolean(cardToEdit);
 
   // Form states
   const [friendName, setFriendName] = useState(cardToEdit?.friendName || '');
+  const [friendPhone, setFriendPhone] = useState(cardToEdit?.friendPhone || '');
   const [senderName, setSenderName] = useState(cardToEdit?.senderName || defaultSenderName || 'Kabir');
   const [senderWhatsApp, setSenderWhatsApp] = useState(cardToEdit?.senderWhatsApp || defaultSenderWhatsApp || '');
   const [relationship, setRelationship] = useState<Relationship>(cardToEdit?.relationship || 'best_friend');
@@ -50,6 +57,8 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
     'May this auspicious day of Dussehra illuminate your path with courage, joy, and boundless prosperity. Wishing you and your loved ones triumphant moments and sweet celebrations!'
   );
   const [musicTrack, setMusicTrack] = useState<MusicTrack>(cardToEdit?.musicTrack || 'festive_shehnai');
+  const [saveToContactsBook, setSaveToContactsBook] = useState(true);
+  const [showContactsPicker, setShowContactsPicker] = useState(false);
 
   // AI Generator state
   const [aiTone, setAiTone] = useState<'heartfelt' | 'witty' | 'spiritual' | 'poetic' | 'professional'>('heartfelt');
@@ -59,10 +68,19 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
   const [showTemplatesPicker, setShowTemplatesPicker] = useState(false);
   const [previewTab, setPreviewTab] = useState<'form' | 'preview'>('form');
 
+  // Handle choosing a contact from the directory
+  const handleSelectContact = (c: Contact) => {
+    setFriendName(c.name);
+    setFriendPhone(c.phone);
+    setRelationship(c.relationship);
+    setShowContactsPicker(false);
+  };
+
   // Construct draft card for live preview
   const draftCard: GreetingCard = {
     id: cardToEdit?.id || 'draft-card',
     friendName: friendName || 'Friend Name',
+    friendPhone,
     senderName: senderName || 'Your Name',
     senderWhatsApp,
     relationship,
@@ -119,12 +137,25 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
     e.preventDefault();
     if (!friendName.trim()) return;
 
+    // Optional save/update in contacts directory
+    if (saveToContactsBook && onSaveContact && friendName.trim()) {
+      onSaveContact({
+        id: `contact-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        name: friendName.trim(),
+        phone: friendPhone.trim().replace(/[^0-9+]/g, ''),
+        relationship,
+        createdAt: new Date().toISOString(),
+        lastGreetingSentAt: new Date().toISOString()
+      });
+    }
+
     const finalCard: GreetingCard = {
       ...draftCard,
       id: cardToEdit?.id || `card-${friendName.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${Math.random().toString(36).substring(2, 6)}`,
       friendName: friendName.trim(),
+      friendPhone: friendPhone.trim().replace(/[^0-9+]/g, '') || undefined,
       senderName: senderName.trim(),
-      senderWhatsApp: senderWhatsApp.trim() || undefined,
+      senderWhatsApp: senderWhatsApp.trim().replace(/[^0-9+]/g, '') || undefined,
       headline: headline.trim(),
       message: message.trim(),
       shloka: shloka.trim() || undefined
@@ -190,9 +221,44 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
             <form id="greeting-form" onSubmit={handleSubmit} className="space-y-6">
               {/* Section 1: Friend & Sender Info */}
               <div className="space-y-4">
-                <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">
-                  1. Recipient & Sender Details
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider block">
+                    1. Recipient & Friend Contact Details
+                  </span>
+                  {contacts.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowContactsPicker(!showContactsPicker)}
+                      className="inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 bg-stone-800 hover:bg-stone-700 px-2.5 py-1 rounded-lg transition-colors"
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      Pick from Contacts ({contacts.length})
+                    </button>
+                  )}
+                </div>
+
+                {/* Contacts Quick Picker dropdown */}
+                {showContactsPicker && contacts.length > 0 && (
+                  <div className="p-3 rounded-2xl bg-stone-950 border border-stone-800 space-y-1.5 max-h-48 overflow-y-auto">
+                    <span className="text-[11px] font-semibold text-stone-400 uppercase tracking-wider block mb-1">
+                      Select a friend to auto-fill details:
+                    </span>
+                    {contacts.map(c => (
+                      <div
+                        key={c.id}
+                        onClick={() => handleSelectContact(c)}
+                        className="p-2 rounded-xl bg-stone-900 hover:bg-amber-950/40 hover:border-amber-400/40 border border-stone-800/80 cursor-pointer flex items-center justify-between text-xs transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <UserCheck className="w-3.5 h-3.5 text-amber-400" />
+                          <span className="font-semibold text-stone-200">{c.name}</span>
+                          <span className="text-stone-400 font-mono text-[11px]">{c.phone}</span>
+                        </div>
+                        <span className="text-[10px] text-stone-500 capitalize">{c.relationship.replace('_', ' ')}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -203,12 +269,31 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
                       type="text"
                       value={friendName}
                       onChange={e => setFriendName(e.target.value)}
-                      placeholder="e.g. Rahul Sharma or Priya"
+                      placeholder="e.g. Rahul Sharma"
                       className="w-full px-3.5 py-2.5 text-sm rounded-xl bg-stone-950 border border-stone-700 text-stone-100 focus:outline-none focus:border-amber-400"
                       required
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-300 mb-1 flex items-center justify-between">
+                      <span>Friend's WhatsApp Number</span>
+                      <span className="text-[10px] text-emerald-400 font-normal">1-click WhatsApp send</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={friendPhone}
+                        onChange={e => setFriendPhone(e.target.value)}
+                        placeholder="e.g. 919876543210 (country code)"
+                        className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-stone-950 border border-stone-700 text-stone-100 focus:outline-none focus:border-amber-400 font-mono"
+                      />
+                      <Phone className="w-4 h-4 text-emerald-400 absolute left-3 top-3" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-stone-300 mb-1">
                       Circle / Relationship
@@ -226,9 +311,7 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
                       <option value="festive_group">Festive Group / Community</option>
                     </select>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-stone-300 mb-1">
                       Your Name (Sender) *
@@ -242,11 +325,13 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
                       required
                     />
                   </div>
+                </div>
 
-                  <div>
+                <div className="flex items-center justify-between pt-1">
+                  <div className="flex-1">
                     <label className="block text-xs font-semibold text-stone-300 mb-1 flex items-center justify-between">
-                      <span>Your WhatsApp Number</span>
-                      <span className="text-[10px] text-stone-400 font-normal">For direct friend replies</span>
+                      <span>Your WhatsApp Number (For Replies)</span>
+                      <span className="text-[10px] text-stone-400 font-normal">Friend can reply back</span>
                     </label>
                     <div className="relative">
                       <input
@@ -254,12 +339,23 @@ export const CardStudioModal: React.FC<CardStudioModalProps> = ({
                         value={senderWhatsApp}
                         onChange={e => setSenderWhatsApp(e.target.value)}
                         placeholder="e.g. 919876543210"
-                        className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-stone-950 border border-stone-700 text-stone-100 focus:outline-none focus:border-amber-400"
+                        className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-xl bg-stone-950 border border-stone-700 text-stone-100 focus:outline-none focus:border-amber-400 font-mono"
                       />
                       <Phone className="w-4 h-4 text-emerald-400 absolute left-3 top-3" />
                     </div>
                   </div>
                 </div>
+
+                {/* Save to contacts directory checkbox */}
+                <label className="flex items-center gap-2 cursor-pointer text-xs text-stone-300 pt-1">
+                  <input
+                    type="checkbox"
+                    checked={saveToContactsBook}
+                    onChange={e => setSaveToContactsBook(e.target.checked)}
+                    className="rounded border-stone-700 text-amber-500 focus:ring-0 bg-stone-950"
+                  />
+                  <span>Save/update this friend in my Contacts Directory for future greetings</span>
+                </label>
               </div>
 
               {/* Section 2: Choose Theme */}

@@ -57,9 +57,9 @@ export const MESSAGE_TEMPLATES: MessageTemplate[] = [
   {
     id: 'msg-telugu-tamil',
     category: 'regional',
-    title: 'Vijayadasami Subhakankshalu',
+    title: 'Vijayadashami Subhakankshalu',
     language: 'Telugu / English',
-    headline: 'Happy Dussehra & Vijayadasami Subhakankshalu! 🪔',
+    headline: 'Happy Dussehra & Vijayadashami Subhakankshalu! 🪔',
     shloka: 'సర్వే జనాః సుఖినో భవన్తు (May all beings be happy and peaceful)',
     message: 'Wishing you a grand celebration filled with divine blessings, sweet delicacies, and triumph over every hurdle. May Goddess Durga bless you and your family with health, harmony, and grand prosperity!'
   }

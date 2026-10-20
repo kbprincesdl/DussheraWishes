@@ -2,8 +2,8 @@ import React from 'react';
 import { Plus } from 'lucide-react';
 
 interface TopNavProps {
-  activeView: 'dashboard' | 'greetings' | 'tracker' | 'themes';
-  onNavigate: (view: 'dashboard' | 'greetings' | 'tracker' | 'themes') => void;
+  activeView: 'dashboard' | 'greetings' | 'contacts' | 'themes';
+  onNavigate: (view: 'dashboard' | 'greetings' | 'contacts' | 'themes') => void;
   onOpenCreateModal: () => void;
 }
 
@@ -45,12 +45,12 @@ export const TopNav: React.FC<TopNavProps> = ({
             All Greetings
           </button>
           <button
-            onClick={() => onNavigate('tracker')}
+            onClick={() => onNavigate('contacts')}
             className={`transition-colors whitespace-nowrap shrink-0 hover:text-amber-300 ${
-              activeView === 'tracker' ? 'text-amber-400 font-semibold' : ''
+              activeView === 'contacts' ? 'text-amber-400 font-semibold' : ''
             }`}
           >
-            Engagement Tracker
+            Contacts Directory
           </button>
           <button
             onClick={() => onNavigate('themes')}

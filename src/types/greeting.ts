@@ -40,11 +40,22 @@ export interface CardReply {
   platform?: 'app' | 'whatsapp' | 'instagram';
 }
 
+export interface Contact {
+  id: string;
+  name: string;
+  phone: string; // e.g. 919876543210
+  relationship: Relationship;
+  notes?: string;
+  createdAt: string;
+  lastGreetingSentAt?: string;
+}
+
 export interface GreetingCard {
   id: string;
   friendName: string;
+  friendPhone?: string; // Friend's phone number for direct 1-click WhatsApp message
   senderName: string;
-  senderWhatsApp?: string; // Optional phone number with country code e.g. 919876543210
+  senderWhatsApp?: string; // Optional sender phone number with country code e.g. 919876543210
   relationship: Relationship;
   themeId: ThemeId;
   layoutId: LayoutId;
@@ -60,6 +71,7 @@ export interface GreetingCard {
   interactedAt: string | null;
   interactions: CardInteraction[];
   replies: CardReply[];
+  contactId?: string;
 }
 
 export interface DussehraTheme {

@@ -1,11 +1,61 @@
-import { GreetingCard, CardInteraction, CardReply } from '../types/greeting';
+import { GreetingCard, CardInteraction, CardReply, Contact } from '../types/greeting';
 
-const STORAGE_KEY = 'dussehra_greeting_cards_v1';
+const CARDS_STORAGE_KEY = 'dussehra_greeting_cards_v2';
+const CONTACTS_STORAGE_KEY = 'dussehra_contacts_v1';
+
+export const INITIAL_CONTACTS: Contact[] = [
+  {
+    id: 'contact-aditya-1',
+    name: 'Aditya Sharma',
+    phone: '919876512345',
+    relationship: 'childhood_friend',
+    notes: 'School buddy, sweet tooth for jalebis',
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    lastGreetingSentAt: new Date(Date.now() - 3600000 * 24).toISOString()
+  },
+  {
+    id: 'contact-pooja-2',
+    name: 'Pooja & Rohan',
+    phone: '919811122334',
+    relationship: 'family',
+    notes: 'Cousins in Pune, loves traditional celebrations',
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    lastGreetingSentAt: new Date(Date.now() - 3600000 * 18).toISOString()
+  },
+  {
+    id: 'contact-ananya-3',
+    name: 'Ananya Verma',
+    phone: '919845099887',
+    relationship: 'colleague',
+    notes: 'Product team colleague',
+    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
+    lastGreetingSentAt: new Date(Date.now() - 3600000 * 8).toISOString()
+  },
+  {
+    id: 'contact-vikram-4',
+    name: 'Vikram Joshi',
+    phone: '919920044556',
+    relationship: 'mentor',
+    notes: 'Former tech director and guide',
+    createdAt: new Date(Date.now() - 3600000 * 36).toISOString(),
+    lastGreetingSentAt: new Date(Date.now() - 3600000 * 2).toISOString()
+  },
+  {
+    id: 'contact-sneha-5',
+    name: 'Sneha Patel',
+    phone: '919822233445',
+    relationship: 'best_friend',
+    notes: 'College roommate & closest confidante',
+    createdAt: new Date(Date.now() - 3600000 * 20).toISOString(),
+    lastGreetingSentAt: undefined
+  }
+];
 
 export const INITIAL_SAMPLE_CARDS: GreetingCard[] = [
   {
     id: 'card-aditya-77a',
     friendName: 'Aditya Sharma',
+    friendPhone: '919876512345',
     senderName: 'Kabir',
     senderWhatsApp: '919876543210',
     relationship: 'childhood_friend',
@@ -40,6 +90,7 @@ export const INITIAL_SAMPLE_CARDS: GreetingCard[] = [
   {
     id: 'card-pooja-88b',
     friendName: 'Pooja & Rohan',
+    friendPhone: '919811122334',
     senderName: 'Kabir',
     senderWhatsApp: '919876543210',
     relationship: 'family',
@@ -73,6 +124,7 @@ export const INITIAL_SAMPLE_CARDS: GreetingCard[] = [
   {
     id: 'card-ananya-42c',
     friendName: 'Ananya Verma',
+    friendPhone: '919845099887',
     senderName: 'Kabir',
     senderWhatsApp: '919876543210',
     relationship: 'colleague',
@@ -94,6 +146,7 @@ export const INITIAL_SAMPLE_CARDS: GreetingCard[] = [
   {
     id: 'card-vikram-99d',
     friendName: 'Vikram Joshi (Mentor)',
+    friendPhone: '919920044556',
     senderName: 'Kabir',
     senderWhatsApp: '919876543210',
     relationship: 'mentor',
@@ -114,19 +167,98 @@ export const INITIAL_SAMPLE_CARDS: GreetingCard[] = [
   }
 ];
 
+function fixSpelling(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/\bVijayadasham\b/g, 'Vijayadashami')
+    .replace(/\bVijayadasami\b/g, 'Vijayadashami');
+}
+
+function sanitizeCard(card: GreetingCard): GreetingCard {
+  return {
+    ...card,
+    headline: fixSpelling(card.headline),
+    message: fixSpelling(card.message),
+    shloka: card.shloka ? fixSpelling(card.shloka) : undefined
+  };
+}
+
+// Contacts Management
+export function loadContacts(): Contact[] {
+  try {
+    const raw = localStorage.getItem(CONTACTS_STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(INITIAL_CONTACTS));
+      return INITIAL_CONTACTS;
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(INITIAL_CONTACTS));
+      return INITIAL_CONTACTS;
+    }
+    return parsed;
+  } catch {
+    return INITIAL_CONTACTS;
+  }
+}
+
+export function saveAllContacts(contacts: Contact[]): void {
+  try {
+    localStorage.setItem(CONTACTS_STORAGE_KEY, JSON.stringify(contacts));
+  } catch (err) {
+    console.error('Failed to save contacts', err);
+  }
+}
+
+export function saveContact(contact: Contact): Contact[] {
+  const contacts = loadContacts();
+  const idx = contacts.findIndex(c => c.id === contact.id);
+  let updated: Contact[];
+  if (idx >= 0) {
+    updated = [...contacts];
+    updated[idx] = contact;
+  } else {
+    updated = [contact, ...contacts];
+  }
+  saveAllContacts(updated);
+  return updated;
+}
+
+export function deleteContact(id: string): Contact[] {
+  const contacts = loadContacts();
+  const updated = contacts.filter(c => c.id !== id);
+  saveAllContacts(updated);
+  return updated;
+}
+
+export function markContactGreetingSent(phoneOrName: string): void {
+  const contacts = loadContacts();
+  const cleanPhone = phoneOrName.replace(/[^0-9]/g, '');
+  const updated = contacts.map(c => {
+    const cPhone = c.phone.replace(/[^0-9]/g, '');
+    if ((cleanPhone && cPhone === cleanPhone) || c.name.toLowerCase() === phoneOrName.toLowerCase()) {
+      return { ...c, lastGreetingSentAt: new Date().toISOString() };
+    }
+    return c;
+  });
+  saveAllContacts(updated);
+}
+
+// Cards Management
 export function loadCards(): GreetingCard[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(CARDS_STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_CARDS));
+      localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_CARDS));
       return INITIAL_SAMPLE_CARDS;
     }
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_CARDS));
+      localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(INITIAL_SAMPLE_CARDS));
       return INITIAL_SAMPLE_CARDS;
     }
-    return parsed;
+    const sanitized = parsed.map(sanitizeCard);
+    return sanitized;
   } catch {
     return INITIAL_SAMPLE_CARDS;
   }
@@ -134,7 +266,7 @@ export function loadCards(): GreetingCard[] {
 
 export function saveAllCards(cards: GreetingCard[]): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cards));
+    localStorage.setItem(CARDS_STORAGE_KEY, JSON.stringify(cards));
   } catch (err) {
     console.error('Failed to save greeting cards', err);
   }
@@ -151,6 +283,12 @@ export function saveCard(card: GreetingCard): GreetingCard[] {
     updated = [card, ...cards];
   }
   saveAllCards(updated);
+
+  // If card has friend phone, update contact's lastGreetingSentAt
+  if (card.friendPhone || card.friendName) {
+    markContactGreetingSent(card.friendPhone || card.friendName);
+  }
+
   return updated;
 }
 
@@ -231,6 +369,13 @@ export function buildCardShareUrl(cardId: string): string {
 export function buildWhatsAppShareUrl(card: GreetingCard): string {
   const shareUrl = buildCardShareUrl(card.id);
   const text = `🪔 *Shubh Dussehra & Vijayadashami!* 🏹\n\nHey ${card.friendName}, I made a special personalized Dussehra digital greeting card just for you with festive music and blessings!\n\n✨ Tap here to open your card:\n${shareUrl}`;
+  
+  if (card.friendPhone) {
+    const cleanNumber = card.friendPhone.replace(/[^0-9]/g, '');
+    if (cleanNumber) {
+      return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+    }
+  }
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }
 
@@ -240,7 +385,9 @@ export function buildWhatsAppReplyUrl(card: GreetingCard, replyMessage?: string)
   
   if (card.senderWhatsApp) {
     const cleanNumber = card.senderWhatsApp.replace(/[^0-9]/g, '');
-    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+    if (cleanNumber) {
+      return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
+    }
   }
   return `https://wa.me/?text=${encodeURIComponent(text)}`;
 }

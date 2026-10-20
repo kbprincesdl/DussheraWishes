@@ -4,12 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { GreetingCard } from './types/greeting';
+import { GreetingCard, Contact } from './types/greeting';
 import { 
   loadCards, 
   saveCard, 
   deleteCard, 
-  getCardById 
+  loadContacts, 
+  saveContact, 
+  deleteContact 
 } from './utils/storage';
 import { TopNav } from './components/TopNav';
 import { Dashboard } from './components/Dashboard';
@@ -18,7 +20,8 @@ import { CardStudioModal } from './components/CardStudioModal';
 
 export default function App() {
   const [cards, setCards] = useState<GreetingCard[]>([]);
-  const [activeNavTab, setActiveNavTab] = useState<'dashboard' | 'greetings' | 'tracker' | 'themes'>('dashboard');
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [activeNavTab, setActiveNavTab] = useState<'dashboard' | 'greetings' | 'contacts' | 'themes'>('dashboard');
   
   // Full-screen recipient view state
   const [viewingCard, setViewingCard] = useState<GreetingCard | null>(null);
@@ -35,15 +38,17 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
-  // Load cards on initial mount and check for ?card=<id> URL parameter
+  // Load cards and contacts on initial mount and check for ?card=<id> URL parameter
   useEffect(() => {
-    const loaded = loadCards();
-    setCards(loaded);
+    const loadedCards = loadCards();
+    const loadedContacts = loadContacts();
+    setCards(loadedCards);
+    setContacts(loadedContacts);
 
     const urlParams = new URLSearchParams(window.location.search);
     const cardParam = urlParams.get('card');
     if (cardParam) {
-      const targetCard = loaded.find(c => c.id === cardParam);
+      const targetCard = loadedCards.find(c => c.id === cardParam);
       if (targetCard) {
         setViewingCard(targetCard);
       }
@@ -54,6 +59,8 @@ export default function App() {
   const handleSaveCard = (card: GreetingCard) => {
     const updatedList = saveCard(card);
     setCards(updatedList);
+    // Refresh contacts in case lastGreetingSentAt updated
+    setContacts(loadContacts());
     setIsStudioOpen(false);
     setCardToEdit(null);
     showToast(`✨ Personalized greeting for ${card.friendName} saved!`);
@@ -67,6 +74,53 @@ export default function App() {
       setViewingCard(null);
     }
     showToast('Greeting deleted.');
+  };
+
+  // Save Contact handler
+  const handleSaveContact = (contact: Contact) => {
+    const updated = saveContact(contact);
+    setContacts(updated);
+    showToast(`👤 Contact for ${contact.name} saved.`);
+  };
+
+  // Delete Contact handler
+  const handleDeleteContact = (id: string) => {
+    const updated = deleteContact(id);
+    setContacts(updated);
+    showToast('Contact removed from directory.');
+  };
+
+  // Open Create Modal (optionally prefilled with a contact)
+  const handleOpenCreateModal = (card?: GreetingCard, prefilledContact?: Contact) => {
+    if (card) {
+      setCardToEdit(card);
+    } else if (prefilledContact) {
+      setCardToEdit({
+        id: '',
+        friendName: prefilledContact.name,
+        friendPhone: prefilledContact.phone,
+        senderName: 'Kabir',
+        senderWhatsApp: '919876543210',
+        relationship: prefilledContact.relationship,
+        themeId: 'royal_saffron',
+        layoutId: 'interactive_diya',
+        headline: 'Happy Vijayadashami & Dussehra!',
+        shloka: 'यतो धर्मस्ततो जयः (Where there is Righteousness, there is Victory)',
+        message: `May this auspicious day of Dussehra illuminate your path with courage, joy, and boundless prosperity. Wishing you and your loved ones triumphant moments and sweet celebrations!`,
+        musicTrack: 'festive_shehnai',
+        createdAt: new Date().toISOString(),
+        viewCount: 0,
+        firstViewedAt: null,
+        lastViewedAt: null,
+        hasInteracted: false,
+        interactedAt: null,
+        interactions: [],
+        replies: []
+      });
+    } else {
+      setCardToEdit(null);
+    }
+    setIsStudioOpen(true);
   };
 
   // If viewing a single card in full-screen recipient mode
@@ -93,23 +147,20 @@ export default function App() {
       <TopNav
         activeView={activeNavTab}
         onNavigate={tab => setActiveNavTab(tab)}
-        onOpenCreateModal={() => {
-          setCardToEdit(null);
-          setIsStudioOpen(true);
-        }}
+        onOpenCreateModal={() => handleOpenCreateModal()}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8">
         <Dashboard
           cards={cards}
+          contacts={contacts}
           activeTab={activeNavTab}
           onNavigateTab={tab => setActiveNavTab(tab)}
-          onOpenCreateModal={card => {
-            setCardToEdit(card || null);
-            setIsStudioOpen(true);
-          }}
+          onOpenCreateModal={handleOpenCreateModal}
           onDeleteCard={handleDeleteCard}
+          onSaveContact={handleSaveContact}
+          onDeleteContact={handleDeleteContact}
           onSelectCardForPreview={card => setViewingCard(card)}
         />
       </main>
@@ -118,9 +169,11 @@ export default function App() {
       {isStudioOpen && (
         <CardStudioModal
           cardToEdit={cardToEdit}
+          contacts={contacts}
           defaultSenderName="Kabir"
           defaultSenderWhatsApp="919876543210"
           onSave={handleSaveCard}
+          onSaveContact={handleSaveContact}
           onClose={() => {
             setIsStudioOpen(false);
             setCardToEdit(null);

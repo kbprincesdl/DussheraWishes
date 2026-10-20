@@ -12,36 +12,44 @@ import {
   Edit3, 
   Eye, 
   Flame, 
-  FlameKindling,
   Users, 
   Heart, 
   Send,
   Smartphone,
+  Phone,
   Layers,
-  ArrowRight
+  ArrowRight,
+  BookOpen
 } from 'lucide-react';
-import { GreetingCard, ThemeId, Relationship } from '../types/greeting';
+import { GreetingCard, ThemeId, Relationship, Contact } from '../types/greeting';
 import { THEMES, LAYOUT_OPTIONS } from '../data/themes';
 import { buildWhatsAppShareUrl, buildCardShareUrl } from '../utils/storage';
 import { QRCodeModal } from './QRCodeModal';
 import { RepliesModal } from './RepliesModal';
 import { GreetingCardView } from './GreetingCardView';
+import { ContactsManager } from './ContactsManager';
 
 interface DashboardProps {
   cards: GreetingCard[];
-  activeTab: 'dashboard' | 'greetings' | 'tracker' | 'themes';
-  onNavigateTab: (tab: 'dashboard' | 'greetings' | 'tracker' | 'themes') => void;
-  onOpenCreateModal: (cardToEdit?: GreetingCard) => void;
+  contacts: Contact[];
+  activeTab: 'dashboard' | 'greetings' | 'contacts' | 'themes';
+  onNavigateTab: (tab: 'dashboard' | 'greetings' | 'contacts' | 'themes') => void;
+  onOpenCreateModal: (cardToEdit?: GreetingCard, prefilledContact?: Contact) => void;
   onDeleteCard: (id: string) => void;
+  onSaveContact: (contact: Contact) => void;
+  onDeleteContact: (id: string) => void;
   onSelectCardForPreview: (card: GreetingCard) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   cards,
+  contacts,
   activeTab,
   onNavigateTab,
   onOpenCreateModal,
   onDeleteCard,
+  onSaveContact,
+  onDeleteContact,
   onSelectCardForPreview
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -51,6 +59,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeRepliesCard, setActiveRepliesCard] = useState<GreetingCard | null>(null);
   const [copiedCardId, setCopiedCardId] = useState<string | null>(null);
   const [selectedMobileCard, setSelectedMobileCard] = useState<GreetingCard>(cards[0] || null);
+
+  // If active tab is 'contacts', display the full Contacts Directory manager
+  if (activeTab === 'contacts') {
+    return (
+      <ContactsManager
+        contacts={contacts}
+        onSaveContact={onSaveContact}
+        onDeleteContact={onDeleteContact}
+        onCreateGreetingForContact={c => onOpenCreateModal(undefined, c)}
+      />
+    );
+  }
 
   // Compute stats
   const totalCards = cards.length;
@@ -67,6 +87,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const filteredCards = cards.filter(c => {
     const matchesSearch = 
       c.friendName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.friendPhone && c.friendPhone.includes(searchQuery)) ||
       c.headline.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.message.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -106,11 +127,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
               Celebrate Dussehra With Your Friends
             </h1>
             <p className="text-sm sm:text-base text-stone-300 leading-relaxed">
-              Send personalized interactive greetings with glowing diyas, Rama’s golden arrow, and festive melodies. Track real-time views and enable 1-click WhatsApp replies!
+              Send personalized interactive greetings with glowing diyas, Rama’s golden arrow, and festive melodies. Save friends' phone numbers for 1-click WhatsApp delivery and track views & replies!
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              onClick={() => onNavigateTab('contacts')}
+              className="inline-flex items-center gap-1.5 px-4 py-3 text-xs font-bold text-amber-200 bg-stone-800 hover:bg-stone-700 border border-amber-500/30 rounded-xl transition-all whitespace-nowrap"
+            >
+              <Users className="w-4 h-4 text-amber-400" />
+              Friends Directory ({contacts.length})
+            </button>
+
             <button
               onClick={() => onOpenCreateModal()}
               className="inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-stone-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-300 hover:brightness-110 rounded-xl shadow-lg shadow-amber-500/20 transition-all active:scale-95 whitespace-nowrap"
@@ -137,7 +166,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <span className="text-xs text-stone-400">friends</span>
           </div>
           <div className="text-[11px] text-stone-400">
-            Across {new Set(cards.map(c => c.relationship)).size} circles
+            {contacts.length} saved in directory
           </div>
         </div>
 
@@ -213,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Search by friend name, wish, or keyword..."
+                  placeholder="Search by friend name, phone, or message..."
                   className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-stone-950 border border-stone-800 text-stone-200 placeholder:text-stone-500 focus:outline-none focus:border-amber-400"
                 />
               </div>
@@ -289,7 +318,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         : 'border-stone-800 bg-stone-900/60 hover:border-amber-500/40'
                     }`}
                   >
-                    {/* Top Row: Friend Name & Status indicator */}
+                    {/* Top Row: Friend Name, Phone & Status indicator */}
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <div>
                         <div className="flex items-center gap-2">
@@ -301,8 +330,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             {card.relationship.replace('_', ' ')}
                           </span>
                         </div>
-                        {/* Theme and Layout unboxed metadata */}
+                        {/* Phone and Theme unboxed metadata */}
                         <div className="flex items-center gap-2 text-xs text-stone-400 mt-0.5">
+                          {card.friendPhone && (
+                            <>
+                              <span className="text-emerald-400 font-mono flex items-center gap-1">
+                                <Phone className="w-3 h-3" /> {card.friendPhone}
+                              </span>
+                              <span aria-hidden="true">·</span>
+                            </>
+                          )}
                           <span>{theme.name}</span>
                           <span aria-hidden="true">·</span>
                           <span className="capitalize">{card.layoutId.replace('_', ' ')}</span>
@@ -374,7 +411,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors whitespace-nowrap"
                         >
                           <MessageCircle className="w-3.5 h-3.5" />
-                          Send on WhatsApp
+                          {card.friendPhone ? `Send to ${card.friendName.split(' ')[0]}` : 'Send on WhatsApp'}
                         </a>
 
                         {/* Copy Link */}
